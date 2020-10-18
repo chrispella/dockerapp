@@ -1,0 +1,27 @@
+version: 2
+jobs:
+  build:
+    working_directory: /dockerapp
+    docker:
+      - image: docker:19.03.13
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --no-cache py-pip=20.2.3
+            pip install docker-compose==1.27.4
+      - run:
+          name: Run tests
+          command: 
+            docker-compose up -d
+            docker-compose run dockerapp python test.py
+      - deploy:
+          name: Push application Docker image
+          command: |
+            docker login -e $DOCKER_HUB_EMAIL -u $DOCKER_HUB_USER_ID -p $DOCKER_HUB_PWD
+            docker tag dockerapp_dockerapp $DOCKER_HUB_USER_ID/dockerapp:$CIRCLE_SHA1
+            docker tag dockerapp_dockerapp $DOCKER_HUB_USER_ID/dockerapp:latest
+            docker push $DOCKER_HUB_USER_ID/dockerapp:$CIRCLE_SHA1
+            docker push $DOCKER_HUB_USER_ID/dockerapp:latest
